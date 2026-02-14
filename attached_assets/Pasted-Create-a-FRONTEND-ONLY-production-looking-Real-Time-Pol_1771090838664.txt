@@ -1,0 +1,197 @@
+Create a FRONTEND-ONLY, production-looking “Real-Time Poll Rooms” web app UI that feels like a modern SaaS dashboard (colorful + polished).
+IMPORTANT:
+- FRONTEND ONLY. Do NOT generate backend code, DB code, or any mocked server. Use REST + Socket.IO contracts only.
+- Must be original-looking, consistent, and review-friendly. Avoid tutorial-ish styling.
+- Prioritize UX polish + edge cases.
+
+Tech:
+- React + Vite + TypeScript
+- TailwindCSS (for a crisp “big app” look fast) + minimal custom CSS only when needed
+- react-router-dom
+- socket.io-client
+- zod + react-hook-form
+- @tanstack/react-query
+- lucide-react (icons)
+- framer-motion (optional, subtle micro-animations ONLY)
+
+Visual / Brand direction (must follow):
+- Use a bright but professional palette: indigo/cyan/purple gradients + neutral backgrounds.
+- App background: subtle gradient wash (very light) + noise optional (CSS)
+- Cards: rounded-2xl, shadow-sm, border, hover lift
+- Buttons: primary gradient button + secondary outline + ghost
+- Badges: colorful pills (Live, Reconnecting, Offline)
+- Progress bars: gradient fill with smooth transition
+- Typography: large hero title, strong section headers, clean body text
+- Overall vibe: “Notion + Linear + Vercel dashboard” (clean + modern)
+
+Information architecture (big-app layout):
+- Use an AppShell with:
+  - Left Sidebar (collapsible on mobile):
+      - Home
+      - Create Poll
+      - Poll Rooms (recent)
+      - About
+      - Privacy
+  - Topbar:
+      - Search input (UI-only placeholder)
+      - “Docs/Notes” link
+      - Profile menu placeholder
+- Main content uses a max width container (1100–1200px) with good spacing.
+
+Routes:
+1) "/" Home Dashboard (not a marketing page—this is a product dashboard)
+   Top section: a colorful hero banner card:
+   - Title: “Real-time Poll Rooms”
+   - Subtitle: “Create, share, vote. Results update instantly.”
+   - 3 mini-stat cards (UI-only): “Live Updates”, “Fair Voting”, “Persistent Links”
+   - CTA buttons: “Create Poll” (scrolls to create widget), “Join Poll” (opens modal)
+
+   Main grid below hero:
+   LEFT (primary): Create Poll Widget card
+   RIGHT (stack): Join Poll card + Demo Poll card + “How it works” card
+
+   Create Poll Widget:
+   - Question + dynamic options editor (min 2 max 6)
+   - Add option, remove option, reorder optional (simple up/down)
+   - Validation:
+      question: trim, required, 10–140
+      options: 2–6, each 1–60, no duplicates (case-insensitive)
+   - Submit calls POST /api/polls
+   - On success show a colorful “Created!” result panel:
+      - shareUrl with Copy button
+      - pollId with Copy button
+      - “Open Room” button
+      - “Copy Invite Message” button that generates a short invite text (client-side) and copies it
+   - Include beautiful error banner and retry
+
+   Join Poll card:
+   - Input accepts full link or pollId
+   - Parses and routes to /p/:pollId
+   - Inline error if invalid
+
+   Demo Poll card:
+   - “Open Demo Room” button routes to /p/<demoId>
+   - demoId logic:
+       if VITE_DEMO_POLL_ID exists use that
+       else use literal "demo"
+   - Make it clear “Demo uses the same real UI; backend must provide demo poll”
+
+   Recent rooms list (UI-only + localStorage):
+   - Store recent pollIds visited
+   - Show as clickable chips in sidebar and on Home
+
+2) "/create" Dedicated Create Poll page
+   - Same create widget but full width + tips panel
+   - Tips panel includes short fairness explanation (clientId header + server enforced)
+
+3) "/p/:pollId" Poll Room page (must feel like a real app)
+   Layout:
+   - Top row: Poll Header card (question + share + room id + status)
+   - Middle row: two columns on desktop:
+        Left: Vote card
+        Right: Results card
+     Stack on mobile
+
+   Poll Header card:
+   - show room name: “Room: <pollId>”
+   - copy pollId + copy link
+   - status badge: Live/Reconnecting/Offline
+
+   Voting card:
+   - Radio list with option cards (hover highlight)
+   - Submit button with loading state
+   - If already voted: lock UI with a “Vote locked” banner + show selected option
+
+   Results card:
+   - totalVotes prominent
+   - each option row: label + votes + percentage + progress bar
+   - show “No votes yet” empty state with illustration (simple SVG inline)
+
+   Real-time:
+   - Initial REST fetch GET /api/polls/:pollId via React Query
+   - Socket:
+      - connect on mount (singleton)
+      - emit "poll:join" { pollId }
+      - listen "poll:state" and update results instantly
+      - listen "poll:error" and show toast
+   - Reconnect UX:
+      - small top banner “Reconnecting…” using motion
+      - on reconnect: re-join + refetch REST once
+
+   Manual refresh button:
+   - Refetch query; show spinner
+
+   Error handling:
+   - 404: show nice NotFound card + “Go Home”
+   - 403: show “Already voted” message but keep results live
+   - 429: show cooldown banner; disable vote button for a short client timer (e.g., 20s) while noting server enforces
+   - network errors: retry
+
+4) "/about" "/privacy" Minimal but styled pages inside AppShell
+5) "*" NotFound page styled
+
+Backend contracts (frontend uses these; backend separate):
+REST:
+- POST /api/polls
+  req { question: string; options: string[] }
+  res { pollId: string; shareUrl: string }
+- GET /api/polls/:pollId
+  res {
+    pollId: string;
+    question: string;
+    options: { id: string; text: string }[];
+    results: { optionId: string; votes: number }[];
+    totalVotes: number;
+    userStatus?: { hasVoted: boolean; votedOptionId?: string };
+    shareUrl?: string;
+  }
+- POST /api/polls/:pollId/vote
+  req { optionId: string }
+  res same as GET OR { ok: true }
+
+Socket.IO:
+- client emits "poll:join" { pollId }
+- server emits "poll:state" { pollId; results; totalVotes }
+- server emits "poll:error" { message }
+
+Fairness / anti-abuse client support (best-effort):
+- localStorage stable clientId generated once (uuid-like)
+- send X-Client-Id header on all REST calls
+- localStorage voted marker: voted:<pollId> = optionId
+- show UI lock if local marker exists, but reconcile with server userStatus (server wins)
+
+Project structure (must match):
+src/
+  api/ client.ts, polls.ts
+  sockets/ socket.ts, usePollSocket.ts
+  validation/ pollSchemas.ts
+  types/ index.ts
+  utils/ clientId.ts, clipboard.ts, parsing.ts, numbers.ts, recent.ts
+  components/
+    layout/ AppShell.tsx, Sidebar.tsx, Topbar.tsx
+    ui/ Button.tsx, Card.tsx, Input.tsx, Badge.tsx, Toast.tsx, Modal.tsx, RadioCards.tsx,
+        ProgressBar.tsx, Skeleton.tsx, EmptyState.tsx, ErrorBanner.tsx
+  pages/ Home.tsx, Create.tsx, PollRoom.tsx, About.tsx, Privacy.tsx, NotFound.tsx
+  styles/ globals.css (tailwind base + small additions)
+  main.tsx, App.tsx
+
+Env config:
+- VITE_API_BASE="" default same origin
+- VITE_SOCKET_URL="" default same origin
+- VITE_SOCKET_PATH="/socket.io"
+- VITE_DEMO_POLL_ID="" optional
+Include .env.example.
+
+Also include:
+- README-frontend.md with:
+  - setup/run
+  - page map
+  - REST + socket contracts
+  - client-side anti-abuse support + limitations
+- Optional minimal tests:
+  - duplicate options validation
+  - pollId parsing from link
+
+Deliver the complete runnable Vite project (npm install, npm run dev).
+No backend mocks, no fake data beyond tiny inline examples in comments.
+Make the UI visually impressive (colorful, modern dashboard) while remaining fast and clean.
