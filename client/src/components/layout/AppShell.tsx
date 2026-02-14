@@ -9,8 +9,9 @@ import {
   Search, 
   Menu,
   X,
-  FileText,
-  User
+  User,
+  Home as HomeIcon,
+  Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -21,14 +22,15 @@ interface AppShellProps {
 }
 
 export default function AppShell({ children }: AppShellProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const isMobile = useIsMobile();
 
   const navItems = [
     { label: "Home", icon: LayoutDashboard, href: "/" },
     { label: "Create Poll", icon: PlusCircle, href: "/create" },
-    { label: "Recent Rooms", icon: BarChart2, href: "/recent" }, // Placeholder route
+    { label: "Profile", icon: User, href: "/profile" },
   ];
 
   const secondaryNav = [
@@ -36,9 +38,17 @@ export default function AppShell({ children }: AppShellProps) {
     { label: "Privacy", icon: Shield, href: "/privacy" },
   ];
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      setLocation(`/p/${searchQuery.trim()}`);
+      setSearchQuery("");
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-background text-foreground font-sans">
-      {/* Mobile Overlay */}
+      {/* Mobile Sidebar Overlay */}
       {mobileMenuOpen && (
         <div 
           className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs md:hidden"
@@ -46,7 +56,7 @@ export default function AppShell({ children }: AppShellProps) {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar (Desktop) */}
       <aside 
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-64 border-r border-sidebar-border bg-sidebar transition-transform duration-300 md:translate-x-0",
@@ -58,6 +68,14 @@ export default function AppShell({ children }: AppShellProps) {
             P
           </div>
           <span className="text-xl font-display font-bold tracking-tight">PollRoom</span>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="ml-auto md:hidden" 
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <X className="h-5 w-5" />
+          </Button>
         </div>
 
         <div className="flex flex-col h-[calc(100vh-4rem)] justify-between py-6 px-3">
@@ -112,32 +130,55 @@ export default function AppShell({ children }: AppShellProps) {
             >
               <Menu className="h-6 w-6" />
             </button>
-            <div className="relative hidden sm:block max-w-md w-64">
+            <form onSubmit={handleSearch} className="relative hidden sm:block max-w-md w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input 
                 type="text" 
-                placeholder="Search polls..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Enter Poll ID to join..." 
                 className="w-full h-9 pl-9 pr-4 rounded-full bg-secondary/50 border border-transparent focus:bg-background focus:border-ring/30 focus:ring-2 focus:ring-ring/20 transition-all text-sm outline-none"
               />
-            </div>
+            </form>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
-             <Button variant="ghost" size="sm" className="hidden sm:flex gap-2 text-muted-foreground">
-               <FileText className="h-4 w-4" />
-               <span className="text-xs font-medium">Docs</span>
-             </Button>
-             <div className="h-8 w-8 rounded-full bg-linear-to-br from-indigo-100 to-purple-100 border border-indigo-200 flex items-center justify-center text-indigo-700 font-medium text-xs cursor-pointer hover:ring-2 hover:ring-offset-2 ring-primary/20 transition-all">
-               ME
-             </div>
+             <Link href="/profile">
+               <div className="h-8 w-8 rounded-full bg-linear-to-br from-indigo-100 to-purple-100 border border-indigo-200 flex items-center justify-center text-indigo-700 font-medium text-xs cursor-pointer hover:ring-2 hover:ring-offset-2 ring-primary/20 transition-all">
+                 ME
+               </div>
+             </Link>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 sm:p-8 max-w-7xl mx-auto w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <main className="flex-1 p-4 sm:p-8 max-w-7xl mx-auto w-full animate-in fade-in slide-in-from-bottom-2 duration-500 pb-24 md:pb-8">
           {children}
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 bg-background/80 backdrop-blur-lg border-t border-border/40 flex items-center justify-around md:hidden px-4">
+        <Link href="/">
+          <a className={cn("flex flex-col items-center gap-1", location === "/" ? "text-primary" : "text-muted-foreground")}>
+            <HomeIcon className="h-5 w-5" />
+            <span className="text-[10px] font-medium">Home</span>
+          </a>
+        </Link>
+        <Link href="/create">
+          <div className="relative -top-4">
+            <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/30 border-4 border-background">
+              <Plus className="h-6 w-6" />
+            </div>
+          </div>
+        </Link>
+        <Link href="/profile">
+          <a className={cn("flex flex-col items-center gap-1", location === "/profile" ? "text-primary" : "text-muted-foreground")}>
+            <User className="h-5 w-5" />
+            <span className="text-[10px] font-medium">Profile</span>
+          </a>
+        </Link>
+      </nav>
     </div>
   );
 }

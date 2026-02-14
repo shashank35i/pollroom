@@ -8,6 +8,7 @@ import AppShell from "@/components/layout/AppShell";
 import Home from "@/pages/Home";
 import Create from "@/pages/Create";
 import PollRoom from "@/pages/PollRoom";
+import Profile from "@/pages/Profile";
 
 function Router() {
   return (
@@ -16,8 +17,8 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/create" component={Create} />
         <Route path="/p/:pollId" component={PollRoom} />
+        <Route path="/profile" component={Profile} />
         
-        {/* Static pages placeholders */}
         <Route path="/about">
           <div className="prose max-w-2xl mx-auto py-10">
              <h1>About PollRoom</h1>
