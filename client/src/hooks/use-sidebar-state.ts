@@ -4,6 +4,7 @@ export function useSidebarState() {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     if (typeof window === "undefined") return false;
     const saved = localStorage.getItem("ui.sidebarCollapsed");
+    // Default to true for that ChatGPT collapsed feel if not set, or just use saved
     return saved ? JSON.parse(saved) : false;
   });
 
