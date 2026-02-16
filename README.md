@@ -268,8 +268,14 @@ npm install
 # Migrate DB
 npx prisma migrate dev
 
-# Start full stack
+# Start full stack (dev)
 npm run dev
+
+# Build frontend only (Cloudflare Pages)
+npm run build
+
+# Build backend only (Railway)
+npm run build:api
 ```
 
 ---
@@ -286,8 +292,8 @@ npm run dev
 
 - Set all environment variables in your host
 - Run database migrations once per environment
-- Serve the frontend build from any static host or reverse proxy
-- Run the API with a process manager (Node 20+)
+- Frontend (Cloudflare Pages): use `npm run build` and output `dist/public`
+- Backend (Railway): use `npm run build:api` and `npm run start`
 
 ---
 
