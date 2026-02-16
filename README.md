@@ -239,6 +239,7 @@ Configured in `.env` at repo root:
 - `PUBLIC_BASE_URL`
 - `CORS_ORIGIN`
 - `IP_HASH_SALT`
+- `SERVE_STATIC` (set to `false` to run backend-only)
 
 ---
 
@@ -294,6 +295,7 @@ npm run build:api
 - Run database migrations once per environment
 - Frontend (Cloudflare Pages): use `npm run build` and output `dist/public`
 - Backend (Railway): use `npm run build:api` and `npm run start`
+- For backend-only deploys, set `SERVE_STATIC=false`
 - CI/CD: both Railway and Cloudflare Pages redeploy automatically on every push to the connected `main` branch.
 
 ---
