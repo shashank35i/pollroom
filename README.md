@@ -294,6 +294,7 @@ npm run build:api
 - Run database migrations once per environment
 - Frontend (Cloudflare Pages): use `npm run build` and output `dist/public`
 - Backend (Railway): use `npm run build:api` and `npm run start`
+- CI/CD: both Railway and Cloudflare Pages redeploy automatically on every push to the connected `main` branch.
 
 ---
 
