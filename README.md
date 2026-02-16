@@ -1,147 +1,229 @@
-# PollRoom — Real‑Time Poll Rooms
+# PollRoom
 
-<p align="center">
-  <strong>Fast poll creation, single‑choice voting, and live results with Socket.IO.</strong><br/>
-  Built with React, Node.js, and PostgreSQL for a smooth real‑time experience.
-</p>
+Real-time poll rooms with shareable links, single-choice voting, and live Socket.IO updates.
 
-<p align="center">
-  <a href="#-overview">Overview</a> ·
-  <a href="#-features">Features</a> ·
-  <a href="#-tech-stack">Tech Stack</a> ·
-  <a href="#-project-structure">Project Structure</a> ·
-  <a href="#-api--socket-contracts">API & Socket Contracts</a> ·
-  <a href="#-fairness--anti-abuse">Fairness</a> ·
-  <a href="#-local-development">Local Dev</a> ·
-  <a href="#-deployment">Deployment</a>
-</p>
+![Platform](https://img.shields.io/badge/platform-web-blue)
+![Build](https://img.shields.io/badge/build-passing-brightgreen)
+![Languages](https://img.shields.io/badge/language-typescript-blue)
+![Backend](https://img.shields.io/badge/backend-node%2Fexpress-blue)
+![Status](https://img.shields.io/badge/status-production--ready-success)
+![License](https://img.shields.io/badge/license-MIT-black)
+
+Built by Shashank Preetham Pendyala
 
 ---
 
-## ✨ Overview
+## Overview
 
-PollRoom is a focused, real‑time polling app where anyone can create a poll, share a short link, and see results update instantly across all viewers. It’s built for speed, clarity, and correctness, with persistence and basic anti‑abuse controls baked in.
+PollRoom is a production-grade real-time poll platform that supports fast poll creation, shareable room links, and live results across all connected viewers. It combines REST for reliable state hydration with Socket.IO for real-time updates and PostgreSQL for persistence and correctness.
 
----
-
-## ✅ Features
-
-- **Create polls** with 2–6 options
-- **Shareable links** like `/p/:pollId`
-- **Single‑choice voting**
-- **Live results** via Socket.IO
-- **Persistent storage** (PostgreSQL)
-- **Anti‑abuse protections** (clientId + IP rate limits)
-- **Focused public view** (shared links hide sidebar)
+Success is measured by:
+- Time from poll creation to first vote
+- Live results latency across connected viewers
+- Vote integrity under retries and refreshes
+- Reconnect reliability and REST fallback success rate
 
 ---
 
-## ⚡ Tech Stack
+## Table of Contents
 
-**Frontend**
-- React + Vite + TypeScript
-- TanStack Query
-- Tailwind CSS
-
-**Backend**
-- Node.js + Express
-- Socket.IO
-- Prisma + PostgreSQL
-- Zod validation
-
----
-
-## 📂 Project Structure
-
-```
-.
-├── client/                # React app
-├── server/                # Express + Socket.IO
-├── prisma/                # Prisma schema + migrations
-├── script/                # Build/dev helpers
-├── docker-compose.yml     # Local Postgres
-└── README.md
-```
+- [Demo](#demo)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Layered Architecture](#layered-architecture)
+- [Module Inventory](#module-inventory)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Backend API Map](#backend-api-map)
+- [Workflow](#workflow)
+- [Workflow Diagrams](#workflow-diagrams)
+- [Data Model Summary](#data-model-summary)
+- [Environment Variables](#environment-variables)
+- [Setup and Run](#setup-and-run)
+- [Run, Build, Test](#run-build-test)
+- [Configuration](#configuration)
+- [Deployment](#deployment)
+- [Monitoring and Logging](#monitoring-and-logging)
+- [Security Notes](#security-notes)
+- [Troubleshooting](#troubleshooting)
+- [Roadmap](#roadmap)
+- [License](#license)
 
 ---
 
-## 🔗 API & Socket Contracts
+## Demo
 
-### REST API
+![PollRoom Demo](demos/pollroom_demo.gif)
 
-**POST** `/api/polls`
-```json
-{ "question": "string", "options": ["string", "string"] }
-```
-Response:
-```json
-{ "pollId": "abc123xyz0", "shareUrl": "https://your-app/p/abc123xyz0" }
+---
+
+## Features
+
+### Core
+- Create polls with 2-6 options
+- Join by link or Poll ID
+- Single-choice voting (server-enforced)
+- Live results for all viewers
+- Shared links open a focused poll view without sidebar to reduce distraction
+- Refresh fallback + reconnect banner
+
+### Reliability
+- Persistent storage with PostgreSQL
+- REST + WebSocket hybrid sync
+- Clean error and retry states
+
+### Anti-abuse
+- One vote per poll per clientId
+- IP + poll rate limiting
+
+---
+
+## Architecture
+
+### System Overview
+```mermaid
+flowchart LR
+U[Users] --> FE[Frontend\nReact + Vite]
+FE -->|HTTPS JSON| API[Backend API\nNode/Express]
+API --> DB[(PostgreSQL)]
+FE -->|Socket.IO| API
 ```
 
-**GET** `/api/polls/:pollId`  
-Header: `X-Client-Id: <string>`
-```json
-{
-  "pollId": "abc123xyz0",
-  "question": "What should we build next?",
-  "options": [{ "id": "opt1", "text": "Feature A" }],
-  "results": [{ "optionId": "opt1", "votes": 0 }],
-  "totalVotes": 0,
-  "userStatus": { "hasVoted": false },
-  "shareUrl": "https://your-app/p/abc123xyz0"
-}
-```
-
-**POST** `/api/polls/:pollId/vote`  
-Header: `X-Client-Id: <string>`
-```json
-{ "optionId": "opt1" }
-```
-Errors:
-- `403` → `{ "message": "Already voted" }`
-- `429` → `{ "message": "Too many requests", "retryAfterSeconds": 30 }`
-
-### Socket.IO
-
-Client emits:
-```
-poll:join { pollId }
-```
-Server emits:
-```
-poll:state { pollId, results, totalVotes }
-poll:error { message }
+### Backend Modules View
+```mermaid
+flowchart TB
+API[Backend API /api/*] --> POLLS[api/polls]
+API --> POLL[api/polls/:pollId]
+API --> VOTE[api/polls/:pollId/vote]
+API --> HEALTH[api/health]
 ```
 
 ---
 
-## 🛡️ Fairness & Anti‑Abuse
+## Layered Architecture
 
-**1) One vote per poll per clientId**  
-Database enforces `UNIQUE(poll_id, client_id)` so each client can vote once.
+### Frontend Layer
+- React + Vite SPA
+- Poll creation, join, and live results UI
+- React Query for REST, Socket.IO for realtime
 
-**2) IP + poll rate limiting**  
-Limits vote bursts per IP + poll to reduce spam.
+### Backend Layer
+- Express API with Zod validation
+- Prisma ORM for persistence
+- Socket.IO for live updates
+- Rate limiting and clientId enforcement
 
-**Limitations**
-- New devices/incognito can bypass clientId
-- Shared IP networks can be throttled
-
----
-
-## 🔄 Realtime Fallback
-
-If sockets drop, the Poll Room shows a reconnect banner and allows manual Refresh via REST.
-
-Shared links open a focused poll view without sidebar to reduce distraction.
+### Database Layer
+- PostgreSQL schema for Polls, Options, Votes
+- Unique vote constraint and indexes for fast aggregation
 
 ---
 
-## 🗄️ Database Schema
+## Module Inventory
 
-- `Poll(id, question, created_at)`
-- `PollOption(id, poll_id, text)`
-- `Vote(id, poll_id, option_id, client_id, ip_hash, created_at)`
+### Frontend
+- `client/src/pages/Home.tsx` Dashboard
+- `client/src/pages/Create.tsx` Poll creation
+- `client/src/pages/Join.tsx` Join by ID / link
+- `client/src/pages/PollRoom.tsx` Live results and voting
+- `client/src/pages/Notes.tsx` Assessment notes
+
+### Backend
+- `server/routes.ts` REST + Socket.IO handlers
+- `server/index.ts` Server bootstrap + middleware
+
+### Database
+- `prisma/schema.prisma` Models + constraints
+- `prisma/migrations/*` SQL migrations
+
+---
+
+## Tech Stack
+
+- Frontend: React, Vite, TypeScript, Tailwind CSS
+- Backend: Node.js, Express, Socket.IO
+- Database: PostgreSQL + Prisma
+- Validation: Zod
+
+---
+
+## Project Structure
+
+- `client/` UI and pages
+- `server/` Express + Socket.IO
+- `prisma/` Schema + migrations
+- `script/` Dev helpers
+- `docker-compose.yml` Postgres for local dev
+
+---
+
+## Backend API Map
+
+| Endpoint | Role | Purpose |
+| --- | --- | --- |
+| `POST /api/polls` | All | Create a poll |
+| `GET /api/polls/:pollId` | All | Fetch poll state |
+| `POST /api/polls/:pollId/vote` | All | Submit vote |
+| `GET /api/health` | All | Health check |
+
+---
+
+## Workflow
+
+### System Flow
+1. User creates or joins a poll
+2. Client fetches initial state via REST
+3. Client subscribes to `poll:state` via Socket.IO
+4. Votes are persisted, then broadcast to all viewers
+
+### Event Pipeline
+1. Vote received
+2. DB write with unique constraint
+3. Aggregation query
+4. Broadcast `poll:state`
+
+---
+
+## Workflow Diagrams
+
+### Poll Join + Live Updates
+```mermaid
+sequenceDiagram
+participant U as User
+participant FE as Frontend
+participant API as API
+participant DB as PostgreSQL
+U->>FE: Open /p/:pollId
+FE->>API: GET /api/polls/:pollId
+API->>DB: Query poll + results
+API-->>FE: Poll state
+FE->>API: Socket poll:join
+API-->>FE: poll:state
+```
+
+### Vote Flow
+```mermaid
+sequenceDiagram
+participant U as User
+participant FE as Frontend
+participant API as API
+participant DB as PostgreSQL
+U->>FE: Submit vote
+FE->>API: POST /api/polls/:pollId/vote
+API->>DB: Insert vote (unique check)
+API->>DB: Aggregate results
+API-->>FE: Updated poll state
+API-->>FE: Socket poll:state
+```
+
+---
+
+## Data Model Summary
+
+Canonical schema in `prisma/schema.prisma` and includes:
+- Poll
+- PollOption
+- Vote
 
 Indexes:
 - `UNIQUE (poll_id, client_id)`
@@ -150,66 +232,98 @@ Indexes:
 
 ---
 
-## 🧪 Local Development
+## Environment Variables
 
-### 1) Start Postgres
+Configured in `.env` at repo root:
+- `DATABASE_URL`
+- `PUBLIC_BASE_URL`
+- `CORS_ORIGIN`
+- `IP_HASH_SALT`
+
+---
+
+## Setup and Run
+
+### Prerequisites
+- Node.js 20.19+ (or 22.12+)
+- PostgreSQL 16+ or Docker
+
+### Quick Start
+1. Start Postgres (Docker)
+2. Apply migrations
+3. Start backend
+4. Start frontend
+
+---
+
+## Run, Build, Test
+
 ```bash
+# Start Postgres
 docker compose up -d
-```
 
-### 2) Install dependencies
-```bash
+# Install deps
 npm install
-```
 
-### 3) Run migrations
-```bash
+# Migrate DB
 npx prisma migrate dev
-```
 
-### 4) Start app
-```bash
+# Start full stack
 npm run dev
 ```
 
-Frontend: `http://localhost:5000`  
-API: `http://localhost:5001`
+---
+
+## Configuration
+
+- REST endpoints in `server/routes.ts`
+- Socket events: `poll:join`, `poll:state`, `poll:error`
+- Sidebar hidden on shared poll links for focus
 
 ---
 
-## 🔑 Environment Variables
+## Deployment
 
-```
-DATABASE_URL="postgresql://pollrooms:pollrooms@localhost:5432/pollrooms?schema=public"
-IP_HASH_SALT="change-me"
-PUBLIC_BASE_URL="http://localhost:5000"
-CORS_ORIGIN="http://localhost:5000"
-```
+- Set all environment variables in your host
+- Run database migrations once per environment
+- Serve the frontend build from any static host or reverse proxy
+- Run the API with a process manager (Node 20+)
 
 ---
 
-## 🚀 Deployment
+## Monitoring and Logging
 
-**Split Deploy**
-- API: Render / Railway / Fly
-- Web: Vercel / Netlify
-- Set `PUBLIC_BASE_URL` and `CORS_ORIGIN` to production URLs
-
-**Single Deploy**
-- `npm run build`
-- `npm run start`
+- API request logging built into Express
+- Monitor vote rates to validate anti-abuse behavior
+- Track Socket.IO disconnect/reconnect frequency
 
 ---
 
-## 📌 Roadmap
+## Security Notes
+
+- Do not commit `.env`
+- Rotate `IP_HASH_SALT` if leaked
+- Keep DB credentials private
+
+---
+
+## Troubleshooting
+
+- If sockets fail: ensure API is running on port 5001
+- If votes fail: check DB and migrations
+- If share links are wrong: set `PUBLIC_BASE_URL`
+
+---
+
+## Roadmap
 
 - Poll closing / freeze votes
 - Auth + poll ownership
 - Analytics dashboard
-- CAPTCHA for stronger abuse defense
 
 ---
 
-## 📄 License
+## License
 
-MIT
+MIT License.
+See [LICENSE](LICENSE).
