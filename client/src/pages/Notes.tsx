@@ -18,12 +18,12 @@ export default function Notes() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             <div className="space-y-1">
-              <p className="font-semibold">1. Stable Anonymous Client ID</p>
-              <p className="text-muted-foreground">Every request includes a unique <code className="bg-muted px-1 rounded">X-Client-Id</code> header generated once per browser. The backend uses this to enforce a one-vote-per-poll rule.</p>
+              <p className="font-semibold">1. One vote per poll per clientId</p>
+              <p className="text-muted-foreground">Backend enforces <code className="bg-muted px-1 rounded">UNIQUE(poll_id, client_id)</code>. Each browser sends a stable <code className="bg-muted px-1 rounded">X-Client-Id</code> so a client can vote only once per poll.</p>
             </div>
             <div className="space-y-1">
-              <p className="font-semibold">2. Server-Side Rate Limiting</p>
-              <p className="text-muted-foreground">Backend enforces IP-based rate limiting. When a 429 error is returned, the UI displays a cooldown message and disables the voting button.</p>
+              <p className="font-semibold">2. IP + poll rate limiting</p>
+              <p className="text-muted-foreground">Server applies IP + poll rate limits to mitigate spam bursts. 429 responses show a cooldown banner with retry time.</p>
             </div>
           </CardContent>
         </Card>
@@ -37,11 +37,11 @@ export default function Notes() {
           <CardContent className="space-y-4 text-sm">
             <div className="space-y-1">
               <p className="font-semibold">WebSocket (Socket.IO)</p>
-              <p className="text-muted-foreground">On joining a room, the client connects to a socket singleton and emits <code className="bg-muted px-1 rounded">poll:join</code>. Real-time state updates are pushed via <code className="bg-muted px-1 rounded">poll:state</code>.</p>
+              <p className="text-muted-foreground">Clients emit <code className="bg-muted px-1 rounded">poll:join</code> and receive <code className="bg-muted px-1 rounded">poll:state</code> for live updates.</p>
             </div>
             <div className="space-y-1">
-              <p className="font-semibold">Hybrid Sync</p>
-              <p className="text-muted-foreground">Initial state is fetched via REST for speed and SEO, then upgraded to WebSocket for live interactivity.</p>
+              <p className="font-semibold">Realtime fallback</p>
+              <p className="text-muted-foreground">If sockets drop, the UI shows a reconnect banner and the Refresh button pulls REST state as fallback.</p>
             </div>
           </CardContent>
         </Card>
@@ -55,12 +55,12 @@ export default function Notes() {
         </CardHeader>
         <CardContent className="grid md:grid-cols-2 gap-6 text-sm">
           <ul className="space-y-2 list-disc pl-4 text-muted-foreground">
-            <li><strong>Invalid pollId:</strong> Handled via robust 404 catch-all UI.</li>
-            <li><strong>Already Voted:</strong> 403 response triggers UI lock with "Vote recorded" banner.</li>
+            <li><strong>Invalid pollId:</strong> Clean 404 UI with return to dashboard.</li>
+            <li><strong>Already voted:</strong> 403 locks voting but results continue to update.</li>
           </ul>
           <ul className="space-y-2 list-disc pl-4 text-muted-foreground">
-            <li><strong>Identity Bypass:</strong> Incognito mode or clearing storage generates a new Client ID.</li>
-            <li><strong>Bot Protection:</strong> Basic protection is implemented; advanced bot mitigation would require Captcha/Auth.</li>
+            <li><strong>Identity bypass:</strong> Incognito/new device produces a new clientId.</li>
+            <li><strong>Shared IP throttling:</strong> Rate limiting can affect shared networks.</li>
           </ul>
         </CardContent>
       </Card>

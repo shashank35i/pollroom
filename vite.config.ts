@@ -43,6 +43,16 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     allowedHosts: true,
+    proxy: {
+      "/api": {
+        target: process.env.VITE_DEV_API_PROXY || "http://localhost:5001",
+        changeOrigin: true,
+      },
+      "/socket.io": {
+        target: process.env.VITE_DEV_API_PROXY || "http://localhost:5001",
+        ws: true,
+      },
+    },
     fs: {
       strict: true,
       deny: ["**/.*"],

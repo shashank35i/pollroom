@@ -40,6 +40,7 @@ export function CreatePollWidget({ compact = false }: { compact?: boolean }) {
     }),
     onSuccess: (data) => {
       setCreatedPoll(data);
+      localStorage.setItem("ui.hasVisitedApp", "true");
       toast({ title: "Created Successfully" });
     },
     onError: () => {
@@ -50,7 +51,20 @@ export function CreatePollWidget({ compact = false }: { compact?: boolean }) {
   const onSubmit = (data: PollFormValues) => mutation.mutate(data);
 
   const copy = async (text: string) => {
-    await navigator.clipboard.writeText(text);
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      toast({ title: "Copied" });
+      return;
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    textarea.remove();
     toast({ title: "Copied" });
   };
 

@@ -16,6 +16,17 @@ export default function AppShell({ children }: AppShellProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const { isCollapsed, toggleSidebar } = useSidebarState();
   const isPublicPoll = location.startsWith("/p/");
+  const [hasVisitedApp, setHasVisitedApp] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("ui.hasVisitedApp") === "true";
+  });
+
+  useEffect(() => {
+    if (!isPublicPoll && !hasVisitedApp) {
+      localStorage.setItem("ui.hasVisitedApp", "true");
+      setHasVisitedApp(true);
+    }
+  }, [isPublicPoll, hasVisitedApp]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,19 +42,20 @@ export default function AppShell({ children }: AppShellProps) {
   };
 
   const sidebarWidth = isCollapsed ? "64px" : "280px";
+  const showSidebar = !isPublicPoll || hasVisitedApp;
 
   return (
     <div
       className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/10 overflow-x-hidden"
       style={{ "--sidebar-w": sidebarWidth } as React.CSSProperties}
     >
-      {!isPublicPoll && (
+      {showSidebar && (
         <DesktopSidebar isCollapsed={isCollapsed} toggleSidebar={toggleSidebar} />
       )}
 
-      <div className={cn("flex-1 flex flex-col relative", !isPublicPoll && "md:pl-[var(--sidebar-w)]")}>
+      <div className={cn("flex-1 flex flex-col relative", showSidebar && "md:pl-[var(--sidebar-w)]")}>
 
-        {!isPublicPoll && (
+        {showSidebar && (
           <header className="sticky top-0 z-30 h-14 border-b border-black/[0.03] dark:border-white/[0.03] bg-background/80 backdrop-blur-xl px-4 flex items-center justify-between">
             <div className="flex items-center gap-4 flex-1">
               <div className="w-full max-w-xl mx-auto sm:px-4">
@@ -95,13 +107,25 @@ export default function AppShell({ children }: AppShellProps) {
             </div>
           </header>
         )}
+        {!showSidebar && isPublicPoll && (
+          <header className="sticky top-0 z-30 h-14 border-b border-black/[0.03] dark:border-white/[0.03] bg-background/80 backdrop-blur-xl px-4 flex items-center">
+            <div className="max-w-5xl mx-auto w-full px-4 sm:px-6 md:px-8 flex items-center">
+              <a
+                href="/"
+                className="font-display font-semibold text-sm tracking-tight text-foreground"
+              >
+                PollRoom
+              </a>
+            </div>
+          </header>
+        )}
 
         <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 md:px-8 py-8 animate-in fade-in slide-in-from-bottom-2 duration-500 pb-24 md:pb-12">
           {children}
         </main>
       </div>
 
-      {!isPublicPoll && <MobileBottomNav />}
+      {showSidebar && <MobileBottomNav />}
     </div>
   );
 }

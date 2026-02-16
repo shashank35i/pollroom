@@ -14,7 +14,9 @@ export interface Poll {
   options: PollOption[];
   results: PollResult[];
   totalVotes: number;
-  createdAt: number;
+  createdAt?: number;
+  shareUrl?: string;
+  userStatus?: UserStatus;
 }
 
 export interface CreatePollRequest {

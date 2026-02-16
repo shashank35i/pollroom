@@ -53,10 +53,13 @@ export default function Home() {
             >
               Start Polling
             </Button>
-            <Link href="/join">
-              <Button 
-                size="lg" 
-                variant="outline" 
+            <Link
+              href="/join"
+              className="inline-flex"
+            >
+              <Button
+                size="lg"
+                variant="outline"
                 className="border-white/10 bg-white/5 text-white hover:bg-white/10 px-8 h-12 rounded-xl"
               >
                 Join by ID
@@ -76,15 +79,15 @@ export default function Home() {
           <Card className="border-border/60 bg-gradient-to-br from-primary/[0.03] to-transparent shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Play className="h-4 w-4 text-primary fill-primary" /> Live Demo
+                <Play className="h-4 w-4 text-primary fill-primary" /> Quick Start
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-                Demo uses the same Poll Room UI. Backend can provide a seeded pollId.
+                Create a poll in seconds, then share the generated room link with participants.
               </p>
-              <Button className="w-full h-11 rounded-xl" variant="outline" onClick={() => setLocation('/p/demo')}>
-                Open Demo Room
+              <Button className="w-full h-11 rounded-xl" variant="outline" onClick={() => setLocation('/create')}>
+                Create Poll Room
               </Button>
             </CardContent>
           </Card>
@@ -97,12 +100,14 @@ export default function Home() {
                  </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {recentPolls.map(id => (
-                  <Link key={id} href={`/p/${id}`}>
-                    <a className="block p-3 rounded-xl bg-secondary/30 hover:bg-secondary transition-all text-sm font-medium flex justify-between items-center group">
-                      <span className="truncate font-mono text-xs text-muted-foreground/70">ID: {id}</span>
-                      <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-all text-primary translate-x-[-4px] group-hover:translate-x-0" />
-                    </a>
+                {recentPolls.map((id) => (
+                  <Link
+                    key={id}
+                    href={`/p/${id}`}
+                    className="block p-3 rounded-xl bg-secondary/30 hover:bg-secondary transition-all text-sm font-medium flex justify-between items-center group"
+                  >
+                    <span className="truncate font-mono text-xs text-muted-foreground/70">ID: {id}</span>
+                    <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-all text-primary translate-x-[-4px] group-hover:translate-x-0" />
                   </Link>
                 ))}
               </CardContent>
