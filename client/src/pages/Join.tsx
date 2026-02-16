@@ -25,6 +25,7 @@ export default function Join() {
       }
       
       if (id.length < 2) throw new Error();
+      localStorage.setItem("ui.publicViewer", "false");
       setLocation(`/p/${id}`);
     } catch (err) {
       toast({

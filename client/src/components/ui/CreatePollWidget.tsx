@@ -41,6 +41,7 @@ export function CreatePollWidget({ compact = false }: { compact?: boolean }) {
     onSuccess: (data) => {
       setCreatedPoll(data);
       localStorage.setItem("ui.hasVisitedApp", "true");
+      localStorage.setItem("ui.publicViewer", "false");
       toast({ title: "Created Successfully" });
     },
     onError: () => {

@@ -16,17 +16,39 @@ export default function AppShell({ children }: AppShellProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const { isCollapsed, toggleSidebar } = useSidebarState();
   const isPublicPoll = location.startsWith("/p/");
+  const pollId = isPublicPoll ? location.split("/p/")[1]?.split("/")[0].split("?")[0] : "";
   const [hasVisitedApp, setHasVisitedApp] = useState(() => {
     if (typeof window === "undefined") return false;
     return localStorage.getItem("ui.hasVisitedApp") === "true";
   });
 
+  const [isRecentPoll, setIsRecentPoll] = useState(false);
+
   useEffect(() => {
     if (!isPublicPoll && !hasVisitedApp) {
       localStorage.setItem("ui.hasVisitedApp", "true");
+      localStorage.setItem("ui.publicViewer", "false");
       setHasVisitedApp(true);
     }
   }, [isPublicPoll, hasVisitedApp]);
+
+  useEffect(() => {
+    if (!isPublicPoll || !pollId) {
+      setIsRecentPoll(false);
+      return;
+    }
+    try {
+      const recent = JSON.parse(localStorage.getItem("recent_polls") || "[]");
+      const found = Array.isArray(recent) && recent.includes(pollId);
+      setIsRecentPoll(found);
+      if (!found) {
+        localStorage.setItem("ui.publicViewer", "true");
+      }
+    } catch {
+      setIsRecentPoll(false);
+      localStorage.setItem("ui.publicViewer", "true");
+    }
+  }, [isPublicPoll, pollId]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +64,7 @@ export default function AppShell({ children }: AppShellProps) {
   };
 
   const sidebarWidth = isCollapsed ? "64px" : "280px";
-  const showSidebar = !isPublicPoll || hasVisitedApp;
+  const showSidebar = !isPublicPoll || isRecentPoll;
 
   return (
     <div

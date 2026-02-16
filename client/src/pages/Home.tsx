@@ -10,6 +10,7 @@ import { CreatePollWidget } from "@/components/ui/CreatePollWidget";
 export default function Home() {
   const [, setLocation] = useLocation();
   const [recentPolls, setRecentPolls] = useState<string[]>([]);
+  const [publicViewer, setPublicViewer] = useState(false);
 
   useEffect(() => {
     try {
@@ -17,6 +18,7 @@ export default function Home() {
       if (stored) {
         setRecentPolls(JSON.parse(stored).slice(0, 3));
       }
+      setPublicViewer(localStorage.getItem("ui.publicViewer") === "true");
     } catch (e) {}
   }, []);
 
@@ -92,7 +94,7 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          {recentPolls.length > 0 && (
+          {!publicViewer && recentPolls.length > 0 && (
             <Card className="border-border/60 shadow-sm">
               <CardHeader>
                  <CardTitle className="text-lg flex items-center gap-2">
